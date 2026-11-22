@@ -41,15 +41,15 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand */}
-          <Link to="/" className="flex items-center gap-3 group shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-green-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-              <Sprout className="w-6 h-6" />
+          <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0 mr-4 lg:mr-8">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-green-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
+              <Sprout className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-emerald-800 to-green-700 dark:from-emerald-400 dark:to-green-300 bg-clip-text text-transparent">
+            <div className="flex flex-col justify-center">
+              <span className="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-emerald-800 to-green-700 dark:from-emerald-400 dark:to-green-300 bg-clip-text text-transparent leading-snug">
                 {t('app_name')}
               </span>
-              <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
+              <p className="text-[10px] lg:text-[11px] text-slate-400 dark:text-slate-400 font-normal leading-tight hidden lg:block tracking-tight truncate max-w-[200px] xl:max-w-none">
                 {t('tagline')}
               </p>
             </div>

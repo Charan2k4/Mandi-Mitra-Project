@@ -19,6 +19,7 @@ import { apiService } from '../services/api';
 import MandiCard from '../components/MandiCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import MandiMapLeaflet from '../components/MandiMapLeaflet';
+import { getCoordinatesFor } from '../utils/geoCoordinates';
 
 export default function ComparePage() {
   const { t } = useLanguage();
@@ -67,7 +68,8 @@ export default function ComparePage() {
           // Default to Telangana or first state
           const defaultState = statesData.find(s => s.name === 'Telangana') || statesData[0];
           setSelectedState(defaultState.name);
-          loadDistricts(defaultState.id);
+          setFarmerCoords(getCoordinatesFor(defaultState.name));
+          loadDistricts(defaultState.id, defaultState.name);
         }
 
         if (!selectedCropId && cropsData.length > 0) {
@@ -83,15 +85,19 @@ export default function ComparePage() {
     initData();
   }, []);
 
-  const loadDistricts = async (stateId) => {
+  const loadDistricts = async (stateId, stateName = selectedState) => {
     try {
       const dists = await apiService.getDistricts(stateId);
       setDistricts(dists);
       if (dists.length > 0) {
         setSelectedDistrict(dists[0].name);
-        if (dists[0].latitude && dists[0].longitude) {
-          setFarmerCoords({ lat: dists[0].latitude, lng: dists[0].longitude });
-        }
+        const coords = (dists[0].latitude && dists[0].longitude)
+          ? { lat: dists[0].latitude, lng: dists[0].longitude }
+          : getCoordinatesFor(stateName, dists[0].name);
+        setFarmerCoords(coords);
+      } else {
+        setSelectedDistrict('');
+        setFarmerCoords(getCoordinatesFor(stateName));
       }
     } catch (err) {
       console.error(err);
@@ -115,9 +121,11 @@ export default function ComparePage() {
   const handleStateChange = (e) => {
     const sName = e.target.value;
     setSelectedState(sName);
+    // Immediately set coordinates to state centroid so coordinates from other states are wiped
+    setFarmerCoords(getCoordinatesFor(sName));
     const sObj = states.find(s => s.name === sName);
     if (sObj) {
-      loadDistricts(sObj.id);
+      loadDistricts(sObj.id, sName);
     }
   };
 
@@ -125,9 +133,10 @@ export default function ComparePage() {
     const dName = e.target.value;
     setSelectedDistrict(dName);
     const dObj = districts.find(d => d.name === dName);
-    if (dObj && dObj.latitude && dObj.longitude) {
-      setFarmerCoords({ lat: dObj.latitude, lng: dObj.longitude });
-    }
+    const coords = (dObj && dObj.latitude && dObj.longitude)
+      ? { lat: dObj.latitude, lng: dObj.longitude }
+      : getCoordinatesFor(selectedState, dName);
+    setFarmerCoords(coords);
   };
 
   const handleCropChange = (e) => {

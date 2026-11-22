@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
 
 from backend.app.database.session import get_db
@@ -18,6 +18,7 @@ from backend.app.schemas.advisor import (
     SellOrHoldResponse
 )
 from backend.app.services.distance_service import haversine_distance, is_valid_coordinate
+from backend.app.utils.geo_coordinates import get_coordinates_for
 from backend.app.services.profit_calculator import (
     calculate_gross_revenue,
     calculate_transportation_cost,
@@ -50,21 +51,41 @@ def compare_mandis(
     if not commodity:
         raise HTTPException(status_code=404, detail="Selected crop not found.")
 
-    # 2. Resolve farmer coordinates
+    # 2. Resolve farmer coordinates safely
+    dist_record = db.query(District).join(State).filter(
+        District.name.ilike(request.district.strip())
+    ).first()
+
+    # Authentic district coordinates from database or fallback dictionary
+    d_lat = dist_record.latitude if dist_record else None
+    d_lng = dist_record.longitude if dist_record else None
+
+    if not is_valid_coordinate(d_lat, d_lng):
+        fallback_coords = get_coordinates_for(request.state, request.district)
+        d_lat, d_lng = fallback_coords
+
     f_lat = request.farmer_lat
     f_lng = request.farmer_lng
 
-    # Fallback to district centroid coordinates if coordinates were not supplied
+    # Fallback to authentic district coordinates if coordinates were not supplied
     if not is_valid_coordinate(f_lat, f_lng):
-        dist_record = db.query(District).filter(
-            District.name.ilike(request.district.strip())
-        ).first()
-        if dist_record and dist_record.latitude and dist_record.longitude:
-            f_lat = dist_record.latitude
-            f_lng = dist_record.longitude
+        f_lat = d_lat
+        f_lng = d_lng
+    elif is_valid_coordinate(d_lat, d_lng):
+        # Guard against stale coordinate retention across state lines in client browser sessions:
+        # If coordinates are within India but >350km away from the user's selected district,
+        # prioritize the authentic district centroid so a farmer in HP is never placed in Telangana.
+        is_in_india = (6.0 <= f_lat <= 38.0) and (68.0 <= f_lng <= 98.0)
+        if is_in_india:
+            dist_to_district = haversine_distance(f_lat, f_lng, d_lat, d_lng)
+            if dist_to_district > 350.0:
+                f_lat = d_lat
+                f_lng = d_lng
 
-    # 3. Retrieve eligible mandis
-    all_mandis = db.query(Mandi).join(District).join(State).all()
+    # 3. Retrieve eligible mandis (using joinedload to eliminate N+1 queries)
+    all_mandis = db.query(Mandi).options(
+        joinedload(Mandi.district).joinedload(District.state)
+    ).all()
     eligible_mandis = []
 
     for mandi in all_mandis:

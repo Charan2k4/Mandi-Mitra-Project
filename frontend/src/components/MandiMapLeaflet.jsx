@@ -1,7 +1,18 @@
 import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { formatCurrency, formatNumber } from '../utils/formatters';
+
+// Helper component to smoothly re-center Leaflet map when coordinates change
+function RecenterMap({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center && center[0] && center[1]) {
+      map.setView(center, map.getZoom(), { animate: true });
+    }
+  }, [center, map]);
+  return null;
+}
 
 // Fix for default Leaflet icon paths in bundlers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -60,6 +71,7 @@ export default function MandiMapLeaflet({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <RecenterMap center={defaultCenter} />
 
         {/* Farmer Marker */}
         {farmerLat && farmerLng && (

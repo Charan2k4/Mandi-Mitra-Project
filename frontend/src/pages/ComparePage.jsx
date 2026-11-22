@@ -33,6 +33,7 @@ export default function ComparePage() {
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [farmerLocation, setFarmerLocation] = useState('');
   const [farmerCoords, setFarmerCoords] = useState({ lat: null, lng: null });
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
   // Crops state
   const [crops, setCrops] = useState([]);
@@ -146,22 +147,62 @@ export default function ComparePage() {
   };
 
   const handleDetectGPS = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setFarmerCoords({
-            lat: parseFloat(pos.coords.latitude.toFixed(4)),
-            lng: parseFloat(pos.coords.longitude.toFixed(4))
-          });
-          setFarmerLocation('Current GPS Location');
-        },
-        (err) => {
-          alert('Could not access GPS. Using district centroid coordinates.');
-        }
-      );
-    } else {
+    if (!navigator.geolocation) {
       alert('Geolocation is not supported by your browser.');
+      return;
     }
+
+    setIsDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = parseFloat(pos.coords.latitude.toFixed(4));
+        const lng = parseFloat(pos.coords.longitude.toFixed(4));
+        setFarmerCoords({ lat, lng });
+
+        try {
+          // Reverse geocode to get actual city/town name, state, and nearest district
+          const geoData = await apiService.reverseGeocode(lat, lng);
+
+          if (geoData && geoData.location_name) {
+            setFarmerLocation(geoData.location_name);
+          }
+
+          if (geoData && geoData.state_name) {
+            setSelectedState(geoData.state_name);
+
+            // Load districts for this detected state
+            if (geoData.state_id) {
+              const stateDists = await apiService.getDistricts(geoData.state_id);
+              setDistricts(stateDists);
+
+              if (geoData.district_name) {
+                // Check if the detected district exists in this state's district list
+                const distMatch = stateDists.find(d =>
+                  d.name.toLowerCase() === geoData.district_name.toLowerCase()
+                );
+                if (distMatch) {
+                  setSelectedDistrict(distMatch.name);
+                } else if (stateDists.length > 0) {
+                  setSelectedDistrict(stateDists[0].name);
+                }
+              } else if (stateDists.length > 0) {
+                setSelectedDistrict(stateDists[0].name);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Reverse geocode failed, using coordinates directly:', err);
+          setFarmerLocation(`Location (${lat}, ${lng})`);
+        } finally {
+          setIsDetectingLocation(false);
+        }
+      },
+      (err) => {
+        setIsDetectingLocation(false);
+        alert('Could not access GPS. Please check browser location permissions or choose manually.');
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -230,10 +271,11 @@ export default function ComparePage() {
               <button
                 type="button"
                 onClick={handleDetectGPS}
-                className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                disabled={isDetectingLocation}
+                className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 disabled:opacity-50 cursor-pointer"
               >
-                <Navigation className="w-3.5 h-3.5" />
-                {t('btn_detect_gps')}
+                <Navigation className={`w-3.5 h-3.5 ${isDetectingLocation ? 'animate-spin' : ''}`} />
+                {isDetectingLocation ? 'Detecting Location...' : t('btn_detect_gps')}
               </button>
             </h2>
 

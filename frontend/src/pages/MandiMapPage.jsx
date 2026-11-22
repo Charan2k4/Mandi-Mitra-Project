@@ -13,6 +13,8 @@ export default function MandiMapPage() {
 
   const [farmerCoords, setFarmerCoords] = useState({ lat: 17.9784, lng: 79.5941 }); // Warangal center default
   const [searchRadius, setSearchRadius] = useState(100);
+  const [detectedLocationName, setDetectedLocationName] = useState('');
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
   useEffect(() => {
     async function fetchAllMandis() {
@@ -29,19 +31,37 @@ export default function MandiMapPage() {
   }, []);
 
   const handleDetectGPS = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setFarmerCoords({
-            lat: parseFloat(pos.coords.latitude.toFixed(4)),
-            lng: parseFloat(pos.coords.longitude.toFixed(4))
-          });
-        },
-        () => {
-          alert('Could not access GPS. Using default reference coordinates.');
-        }
-      );
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      return;
     }
+
+    setIsDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = parseFloat(pos.coords.latitude.toFixed(4));
+        const lng = parseFloat(pos.coords.longitude.toFixed(4));
+        setFarmerCoords({ lat, lng });
+
+        try {
+          const geoData = await apiService.reverseGeocode(lat, lng);
+          if (geoData) {
+            const locParts = [geoData.location_name, geoData.district_name, geoData.state_name].filter(Boolean);
+            setDetectedLocationName(locParts.join(', '));
+          }
+        } catch (err) {
+          console.warn('Reverse geocoding failed:', err);
+          setDetectedLocationName(`Location (${lat}, ${lng})`);
+        } finally {
+          setIsDetectingLocation(false);
+        }
+      },
+      () => {
+        setIsDetectingLocation(false);
+        alert('Could not access GPS. Using default reference coordinates.');
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
   };
 
   return (
@@ -58,13 +78,21 @@ export default function MandiMapPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleDetectGPS}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm"
-        >
-          <Navigation className="w-4 h-4" />
-          {t('btn_detect_gps')}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {detectedLocationName && (
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 animate-fadeIn">
+              📍 {detectedLocationName}
+            </span>
+          )}
+          <button
+            onClick={handleDetectGPS}
+            disabled={isDetectingLocation}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+          >
+            <Navigation className={`w-4 h-4 ${isDetectingLocation ? 'animate-spin' : ''}`} />
+            {isDetectingLocation ? 'Detecting...' : t('btn_detect_gps')}
+          </button>
+        </div>
       </div>
 
       {/* Map Control Bar */}

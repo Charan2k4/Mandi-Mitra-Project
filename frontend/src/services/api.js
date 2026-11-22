@@ -39,6 +39,11 @@ export const apiService = {
     return handleResponse(res);
   },
 
+  reverseGeocode: async (lat, lng) => {
+    const res = await fetch(`${API_BASE_URL}/locations/reverse-geocode?lat=${lat}&lng=${lng}`);
+    return handleResponse(res);
+  },
+
   // Crops & Varieties
   getCrops: async () => {
     const res = await fetch(`${API_BASE_URL}/crops`);

@@ -83,3 +83,14 @@ def test_prices_status_endpoint(client):
     assert "total_records" in data
     assert "live_records" in data
     assert "benchmark_records" in data
+
+def test_reverse_geocode_endpoint(client):
+    """Test reverse geocode GPS coordinates to place, state, and nearest district."""
+    # Test coordinates for Rajahmundry, Andhra Pradesh
+    res = client.get("/api/locations/reverse-geocode?lat=17.0056&lng=81.7876")
+    assert res.status_code == 200
+    data = res.json()
+    assert "location_name" in data
+    assert data["state_name"] == "Andhra Pradesh"
+    assert data["district_name"] is not None
+    assert data["latitude"] == 17.0056

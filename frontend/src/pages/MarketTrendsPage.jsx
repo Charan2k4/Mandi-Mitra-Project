@@ -56,10 +56,11 @@ export default function MarketTrendsPage() {
         setMandis(mandisData);
 
         if (cropsData.length > 0) {
-          setSelectedCropId(cropsData[0].id);
-          const vars = await apiService.getVarieties(cropsData[0].id);
+          const firstCropId = cropsData[0].id;
+          setSelectedCropId(firstCropId);
+          const vars = await apiService.getVarieties(firstCropId);
           setVarieties(vars);
-          if (vars.length > 0) setSelectedVarietyId(vars[0].id);
+          setSelectedVarietyId(''); // Default to All Varieties for regional trend
         }
       } catch (err) {
         setError(err.message || 'Failed to initialize market trends options.');
@@ -74,9 +75,10 @@ export default function MarketTrendsPage() {
     try {
       const vars = await apiService.getVarieties(cId);
       setVarieties(vars);
-      setSelectedVarietyId(vars.length > 0 ? vars[0].id : '');
+      setSelectedVarietyId(''); // Reset to All Varieties
     } catch {
       setVarieties([]);
+      setSelectedVarietyId('');
     }
   };
 
@@ -136,6 +138,7 @@ export default function MarketTrendsPage() {
               onChange={handleCropChange}
               className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
             >
+              {crops.length === 0 && <option value="">Loading crops...</option>}
               {crops.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}

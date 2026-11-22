@@ -54,3 +54,32 @@ def test_missing_prices_handled_safely(client):
     assert data["total_mandis_found"] == 0
     assert data["best_mandi"] is None
     assert data["results"] == []
+
+def test_preferences_get_and_post(client):
+    """Test farmer preferences GET and POST."""
+    res_get = client.get("/api/preferences?session_id=test_farmer_pref")
+    assert res_get.status_code == 200
+    assert res_get.json()["default_radius_km"] == 100
+
+    res_post = client.post("/api/preferences", json={
+        "session_id": "test_farmer_pref",
+        "default_radius_km": 150,
+        "price_preference": "modal",
+        "language": "hi",
+        "holding_period_days": 7,
+        "min_profit_threshold_pct": 5.0,
+        "max_acceptable_price_age_days": 10,
+        "holding_cost_per_quintal_day": 8.0
+    })
+    assert res_post.status_code == 200
+    assert res_post.json()["default_radius_km"] == 150
+    assert res_post.json()["language"] == "hi"
+
+def test_prices_status_endpoint(client):
+    """Test prices status coverage endpoint."""
+    res = client.get("/api/prices/status")
+    assert res.status_code == 200
+    data = res.json()
+    assert "total_records" in data
+    assert "live_records" in data
+    assert "benchmark_records" in data

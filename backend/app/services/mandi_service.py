@@ -1,11 +1,11 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from backend.app.models.mandi import Mandi
 from backend.app.models.location import District, State
 from backend.app.services.distance_service import haversine_distance, is_valid_coordinate
 
 def get_all_mandis(db: Session, district_id: Optional[int] = None) -> List[Mandi]:
-    query = db.query(Mandi)
+    query = db.query(Mandi).options(joinedload(Mandi.district).joinedload(District.state))
     if district_id:
         query = query.filter(Mandi.district_id == district_id)
     return query.all()
@@ -23,7 +23,7 @@ def find_nearby_mandis(
     if not is_valid_coordinate(farmer_lat, farmer_lng):
         return []
         
-    mandis = db.query(Mandi).join(District).join(State).all()
+    mandis = db.query(Mandi).options(joinedload(Mandi.district).joinedload(District.state)).all()
     results = []
     
     for m in mandis:

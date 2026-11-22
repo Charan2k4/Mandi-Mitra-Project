@@ -291,6 +291,7 @@ export default function ComparePage() {
                   onChange={handleCropChange}
                   className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
                 >
+                  {crops.length === 0 && <option value="">Loading crops...</option>}
                   {crops.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
@@ -306,6 +307,7 @@ export default function ComparePage() {
                   onChange={(e) => setSelectedVarietyId(e.target.value)}
                   className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
                 >
+                  {varieties.length === 0 && <option value="">Select crop first</option>}
                   {varieties.map((v) => (
                     <option key={v.id} value={v.id}>{v.name}</option>
                   ))}
@@ -324,7 +326,7 @@ export default function ComparePage() {
               <input
                 type="number"
                 min="0.1"
-                step="0.5"
+                step="any"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
@@ -357,7 +359,7 @@ export default function ComparePage() {
                 <input
                   type="number"
                   min="0"
-                  step="1"
+                  step="any"
                   value={transportRate}
                   onChange={(e) => setTransportRate(e.target.value)}
                   className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
@@ -372,7 +374,7 @@ export default function ComparePage() {
                 <input
                   type="number"
                   min="0"
-                  step="50"
+                  step="any"
                   value={otherExpenses}
                   onChange={(e) => setOtherExpenses(e.target.value)}
                   className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"

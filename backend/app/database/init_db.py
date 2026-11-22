@@ -207,74 +207,80 @@ def init_db():
     
     db: Session = SessionLocal()
     try:
-        # Check if already seeded
+        # Check if states and market prices are already seeded
         existing_states = db.query(State).count()
-        if existing_states > 0:
-            logger.info(f"Database already contains {existing_states} states. Ensuring prices are populated.")
-            _ensure_recent_prices(db)
+        existing_prices = db.query(MarketPrice).count()
+
+        if existing_states > 0 and existing_prices > 0:
+            logger.info(
+                f"Database is already seeded with {existing_states} states and {existing_prices} price records. "
+                "Initialization verified (idempotent, no changes needed)."
+            )
             return
 
-        logger.info("Seeding states, districts, and mandis...")
-        mandi_objs = []
-        for state_name, state_data in SEED_DATA.items():
-            state = State(name=state_name, code=state_data["code"])
-            db.add(state)
-            db.flush()
-
-            for dist_name, dist_data in state_data["districts"].items():
-                district = District(
-                    state_id=state.id,
-                    name=dist_name,
-                    latitude=dist_data["lat"],
-                    longitude=dist_data["lng"]
-                )
-                db.add(district)
+        if existing_states == 0:
+            logger.info("Seeding states, districts, and mandis...")
+            mandi_objs = []
+            for state_name, state_data in SEED_DATA.items():
+                state = State(name=state_name, code=state_data["code"])
+                db.add(state)
                 db.flush()
 
-                for mandi_item in dist_data["mandis"]:
-                    mandi = Mandi(
-                        district_id=district.id,
-                        name=mandi_item["name"],
-                        code=mandi_item.get("code"),
-                        latitude=mandi_item["lat"],
-                        longitude=mandi_item["lng"],
-                        contact_phone=mandi_item.get("phone"),
-                        address=f"{mandi_item['name']}, {dist_name}, {state_name}"
+                for dist_name, dist_data in state_data["districts"].items():
+                    district = District(
+                        state_id=state.id,
+                        name=dist_name,
+                        latitude=dist_data["lat"],
+                        longitude=dist_data["lng"]
                     )
-                    db.add(mandi)
+                    db.add(district)
                     db.flush()
-                    mandi_objs.append(mandi)
 
-        logger.info("Seeding commodities and varieties...")
-        commodity_objs = []
-        variety_objs = []
-        for c_data in COMMODITIES_DATA:
-            commodity = Commodity(
-                name=c_data["name"],
-                category=c_data["category"],
-                unit=c_data["unit"],
-                shelf_life_days=c_data["shelf_life_days"]
-            )
-            db.add(commodity)
-            db.flush()
-            commodity_objs.append((commodity, c_data["base_price"]))
+                    for mandi_item in dist_data["mandis"]:
+                        mandi = Mandi(
+                            district_id=district.id,
+                            name=mandi_item["name"],
+                            code=mandi_item.get("code"),
+                            latitude=mandi_item["lat"],
+                            longitude=mandi_item["lng"],
+                            contact_phone=mandi_item.get("phone"),
+                            address=f"{mandi_item['name']}, {dist_name}, {state_name}"
+                        )
+                        db.add(mandi)
+                        db.flush()
+                        mandi_objs.append(mandi)
 
-            for v_name in c_data["varieties"]:
-                variety = Variety(
-                    commodity_id=commodity.id,
-                    name=v_name
+            logger.info("Seeding commodities and varieties...")
+            commodity_objs = []
+            variety_objs = []
+            for c_data in COMMODITIES_DATA:
+                commodity = Commodity(
+                    name=c_data["name"],
+                    category=c_data["category"],
+                    unit=c_data["unit"],
+                    shelf_life_days=c_data["shelf_life_days"]
                 )
-                db.add(variety)
+                db.add(commodity)
                 db.flush()
-                variety_objs.append((variety, commodity.id))
+                commodity_objs.append((commodity, c_data["base_price"]))
 
-        db.commit()
+                for v_name in c_data["varieties"]:
+                    variety = Variety(
+                        commodity_id=commodity.id,
+                        name=v_name
+                    )
+                    db.add(variety)
+                    db.flush()
+                    variety_objs.append((variety, commodity.id))
 
-        # Generate realistic multi-day price series
-        logger.info("Seeding historical and recent market prices...")
-        _generate_price_history(db)
+            db.commit()
 
-        db.commit()
+        # Generate realistic multi-day price series only if prices table is empty
+        if db.query(MarketPrice).count() == 0:
+            logger.info("Seeding historical and benchmark market prices...")
+            _generate_price_history(db)
+            db.commit()
+
         logger.info("Database initialization and authentic seed data insertion completed successfully.")
     except Exception as exc:
         db.rollback()
@@ -284,7 +290,7 @@ def init_db():
         db.close()
 
 def _generate_price_history(db: Session):
-    """Generate 30 days of realistic daily prices for each mandi-commodity combination."""
+    """Generate 35 days of realistic daily prices for each mandi-commodity combination."""
     mandis = db.query(Mandi).all()
     commodities = db.query(Commodity).all()
     today = date.today()
@@ -315,6 +321,17 @@ def _generate_price_history(db: Session):
             # Generate 35 days of history (from 35 days ago to today)
             for day_offset in range(35, -1, -1):
                 p_date = today - timedelta(days=day_offset)
+                
+                # Check for existing record to ensure complete idempotency
+                existing_record = db.query(MarketPrice.id).filter(
+                    MarketPrice.mandi_id == mandi.id,
+                    MarketPrice.commodity_id == comm.id,
+                    MarketPrice.variety_id == (primary_variety.id if primary_variety else None),
+                    MarketPrice.price_date == p_date
+                ).first()
+                if existing_record:
+                    continue
+
                 # Realistic price trajectory with seasonal drift and daily noise
                 trend_component = math.sin((35 - day_offset) / 5.0) * 0.03
                 noise_component = math.cos((m_idx + day_offset + c_idx) * 2.3) * 0.015
@@ -336,25 +353,11 @@ def _generate_price_history(db: Session):
                     price_unit="Rs/Quintal",
                     arrivals_in_tonnes=arrivals,
                     data_source="Agmarknet Benchmark Data",
-                    data_classification="live" if day_offset == 0 else "historical"
+                    data_classification="benchmark"
                 )
                 db.add(price_rec)
 
     db.commit()
-
-def _ensure_recent_prices(db: Session):
-    """Ensure today's date has price records so calculations reflect current day data."""
-    today = date.today()
-    latest = db.query(MarketPrice).order_by(MarketPrice.price_date.desc()).first()
-    if latest and latest.price_date < today:
-        delta = (today - latest.price_date).days
-        if delta > 0:
-            logger.info(f"Advancing existing price records by {delta} day(s) to match today ({today.isoformat()}).")
-            # Shift all price dates forward so they remain fresh
-            all_prices = db.query(MarketPrice).all()
-            for p in all_prices:
-                p.price_date = p.price_date + timedelta(days=delta)
-            db.commit()
 
 if __name__ == "__main__":
     init_db()

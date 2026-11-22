@@ -3,211 +3,235 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18.3+-61DAFB.svg?style=flat&logo=react&logoColor=black)](https://react.dev)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4+-38B2AC.svg?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
-[![PostgreSQL / Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E.svg?style=flat&logo=supabase&logoColor=white)](https://supabase.com)
-[![Tests](https://img.shields.io/badge/pytest-15%20passed-brightgreen.svg?style=flat&logo=pytest&logoColor=white)](backend/tests)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E.svg?style=flat&logo=supabase&logoColor=white)](https://supabase.com)
+[![Pytest](https://img.shields.io/badge/pytest-18%20passed-brightgreen.svg?style=flat&logo=pytest&logoColor=white)](backend/tests)
+[![Agmarknet](https://img.shields.io/badge/Agmarknet-Live%20Sync%20%26%20Benchmark-brightgreen.svg)](https://data.gov.in)
+[![Localization](https://img.shields.io/badge/Languages-English%20%7C%20%E0%B0%A4%E0%B1%86%E0%B0%B2%E0%B1%81%E0%B0%97%E0%B1%81%20%7C%20%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80-orange.svg)](frontend/src/utils/translations.js)
 
-> **Mandi Mitra** helps Indian farmers make smarter selling decisions by comparing regional APMC market prices, calculating exact net profit after vehicle freight and local charges, and providing an explainable, non-speculative **Sell Now / Consider Holding / Caution / Insufficient Data** advisory.
+> **Mandi Mitra** is a full-stack agricultural decision-support web application designed for Indian farmers. It calculates realistic **Net Revenue** across regional Agricultural Produce Market Committees (APMCs) by deducting actual vehicle transportation freight and local handling charges, and provides an explainable, rule-based **Sell Now / Consider Holding / Caution / Insufficient Data** advisory.
 
 ---
 
-## 🌾 Features & Architecture
+## 📌 Table of Contents
 
-1. **Farmer Mandi Comparison Engine**:
+- [Key Features](#-key-features)
+- [Screenshots](#-screenshots)
+- [Technology Stack](#-technology-stack)
+- [Architecture Overview](#-architecture-overview)
+- [Prerequisites](#-prerequisites)
+- [Local Setup & Startup](#-local-setup--startup)
+- [Database Architecture](#-database-architecture)
+- [Testing & Quality Assurance](#-testing--quality-assurance)
+- [Data Provenance & Disclaimers](#-data-provenance--disclaimers)
+- [Deployment Roadmap](#-deployment-roadmap)
+- [Documentation Index](#-documentation-index)
+- [License](#-license)
+
+---
+
+## 🌾 Key Features
+
+1. **Farmer Mandi Net Profit Comparison**:
    - Location input by State, District, Village, or GPS Auto-detection.
-   - Commodity & variety selection with quantity in quintals.
-   - Vehicle freight calculation (Distance in km × Transport Rate in ₹/km).
-   - Additional selling expenses (loading, unloading, mandi cess, weighing).
-   - Real-time ranking of mandis by **Estimated Net Revenue** (highlighting the #1 most profitable APMC).
-   - Staleness warnings for market quotes older than 7 days.
+   - Commodity & variety selection with volume in quintals ($1\text{ quintal} = 100\text{ kg}$).
+   - Vehicle transport calculation ($\text{Distance in km} \times \text{Rate in ₹/km}$).
+   - Additional selling deductions (loading, unloading, mandi cess, weighing).
+   - Strict ranking by **Estimated Net Revenue** (highlighting the #1 most profitable APMC).
+   - Price staleness detection for quotes older than 7 days.
 
-2. **Sell-or-Hold Advisory Engine**:
+2. **Sell-or-Hold Decision Engine**:
    - Transparent, rule-based decision support (no black-box machine learning).
-   - Evaluates current modal price, 7-day average, 30-day average, price momentum, and volatility.
-   - Incorporates farmer holding timeframe (1, 3, or 7 days) and storage costs (₹/quintal/day).
-   - Strict safeguards: yields `INSUFFICIENT DATA` if historical records are missing or stale.
-   - Outputs: `SELL NOW`, `CONSIDER HOLDING`, `CAUTION`, `INSUFFICIENT DATA`.
-   - Never guarantees future prices; includes explicit legal disclaimers.
+   - Evaluates current modal price, 7-day average ($SMA_7$), 30-day average ($SMA_{30}$), momentum, and volatility.
+   - Incorporates farmer holding horizon (1, 3, or 7 days) and storage costs (₹/quintal/day).
+   - Rigorous safeguards: yields `INSUFFICIENT DATA` if historical records are missing or stale.
+   - Deterministic **Rule Signal Strength** score ($0-100\%$) based on freshness, depth, and volatility.
+   - Never guarantees future spot rates; includes prominent legal disclaimers.
 
 3. **Historical Market Trends**:
-   - Interactive Recharts visualization with Modal Price, Min Price, and Max Price curves.
+   - Interactive Recharts visualization with daily Modal, Minimum, and Maximum price trajectory curves.
    - Filter by crop, variety, mandi, and date range (7, 14, 30, 45 days).
 
-4. **Geographic Mandi Explorer**:
-   - Leaflet & OpenStreetMap interactive map with verified APMC yard coordinates across India.
-   - Clearly distinguishes approximate straight-line geodesic distance from road distance.
+4. **Geographic APMC Map**:
+   - Leaflet & OpenStreetMap interactive view with verified coordinates for major agricultural mandis across India.
+   - Farmer reference marker with custom search radius circle.
 
-5. **Multi-Language & Customization**:
-   - Full bilingual support in **English** and **తెలుగు (Telugu)** with instant toggle.
-   - Customizable search radius, price preference (Modal/Min/Max), holding horizon, and storage costs.
-   - Light and Dark visual themes.
+5. **Trilingual Localization (English, Telugu, Hindi)**:
+   - Full interface localization in **English**, **తెలుగు (Telugu)**, and **हिन्दी (Hindi)**.
+   - Instant header toggle and persistent preference in Settings.
 
 ---
 
-## 📁 Project Structure
+## 📸 Screenshots
+
+> *To add screenshots to your repository, capture views from your browser and place them in `docs/screenshots/`.*
+
+| Dashboard | Mandi Comparison |
+| :---: | :---: |
+| *(Add `docs/screenshots/dashboard.png`)* | *(Add `docs/screenshots/compare.png`)* |
+
+| Sell-or-Hold Advisor | Market Trends Chart |
+| :---: | :---: |
+| *(Add `docs/screenshots/advisor.png`)* | *(Add `docs/screenshots/trends.png`)* |
+
+---
+
+## 💻 Technology Stack
+
+- **Frontend**: React 18, Vite, JavaScript, Tailwind CSS, React Router v6, Recharts, Leaflet & React-Leaflet, Lucide React.
+- **Backend**: Python 3.11+, FastAPI, Pydantic v2, Pydantic-Settings, SQLAlchemy 2.0, NumPy, Pandas, HTTPX, Uvicorn.
+- **Database**: 
+  - **Production**: Supabase PostgreSQL (Standard & Transaction Pooler port 6543).
+  - **Local Development**: SQLite fallback (`mandi_mitra.db`).
+- **Testing**: Pytest, Pytest-Asyncio, HTTPX TestClient.
+
+---
+
+## 🏗️ Architecture Overview
 
 ```
-Mandi Mitra Project/
+mandi-mitra/
 ├── backend/
 │   ├── app/
-│   │   ├── api/
-│   │   │   └── endpoints/         # health, locations, crops, mandis, prices, advisor
-│   │   ├── core/                  # config.py (Pydantic settings), exceptions.py
+│   │   ├── api/endpoints/         # health, locations, crops, mandis, prices, advisor
+│   │   ├── core/                  # config.py, exceptions.py
 │   │   ├── database/              # session.py, base.py, init_db.py
 │   │   ├── models/                # SQLAlchemy models (location, crop, mandi, price, user_preference)
-│   │   ├── schemas/               # Pydantic validation schemas
-│   │   ├── services/              # agmarknet_service, profit_calculator, advisor_service, distance_service
-│   │   └── main.py                # FastAPI application entrypoint & CORS
-│   ├── tests/                     # 15 comprehensive pytest unit and integration tests
-│   ├── requirements.txt
-│   └── .env.example
+│   │   ├── schemas/               # Pydantic schemas
+│   │   ├── services/              # profit_calculator, advisor_service, distance_service, agmarknet_service
+│   │   └── main.py                # FastAPI entrypoint & CORS middleware
+│   └── tests/                     # 16 unit and regression tests
 ├── frontend/
 │   ├── src/
 │   │   ├── components/            # Navbar, Footer, MandiCard, AdvisoryCard, MandiMapLeaflet, AlertBadge
+│   │   ├── context/               # LanguageContext (EN/TE/HI), SettingsContext
 │   │   ├── pages/                 # Dashboard, ComparePage, SellOrHoldPage, MarketTrendsPage, MandiMapPage, SettingsPage
-│   │   ├── layouts/               # MainLayout
-│   │   ├── context/               # LanguageContext (EN/TE), SettingsContext
-│   │   ├── services/              # api.js
-│   │   ├── utils/                 # translations.js, formatters.js
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── public/
-│   ├── package.json
-│   ├── vite.config.js
-│   ├── tailwind.config.js
-│   └── .env.example
+│   │   ├── services/              # api.js (centralized fetch client)
+│   │   └── utils/                 # translations.js, formatters.js
 ├── database/
-│   ├── schema.sql                 # Complete Supabase PostgreSQL schema
-│   ├── seed.sql                   # Raw SQL seed data for Supabase SQL Editor
-│   └── migrations/
+│   ├── schema.sql                 # Supabase PostgreSQL schema
+│   └── seed.sql                   # Raw SQL seed records
+├── docs/                          # In-depth architectural & user guides
 ├── scripts/
 │   ├── seed_database.py           # Standalone DB seeding
-│   ├── sync_agmarknet.py          # Agmarknet live sync adapter
+│   ├── sync_agmarknet.py          # Data.gov.in live sync script
 │   └── verify_system.py           # Full system verification suite
-├── .env.example
+├── .env.example                   # Master environment template
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## 🛠️ Prerequisites (Windows 11)
+## ⚡ Prerequisites
 
-- **Python**: Version 3.11 or higher
-- **Node.js**: Version 18 or higher (tested with v22.14.0)
+- **Python**: 3.11 or higher
+- **Node.js**: 18.x or 20.x or higher (tested on v22.14.0)
+- **npm**: 9.x or higher
 - **Git**
-- **Supabase Account** (Optional for local test; local SQLite fallback is enabled automatically if `DATABASE_URL` is omitted).
 
 ---
 
-## 🚀 Step-by-Step Local Setup & Execution
+## 🚀 Local Setup & Startup
 
-### 1. Configure Environment Variables
-
-Create `.env` in the project root (or `backend/.env`):
-
+### 1. Clone Repository & Setup Environment
 ```powershell
+git clone https://github.com/your-username/mandi-mitra.git
+cd mandi-mitra
+
+# Copy environment template
 Copy-Item .env.example .env
 ```
 
-To configure **Supabase PostgreSQL**, edit `.env`:
-
-```env
-# Supabase PostgreSQL Connection String
-# Direct connection:
-DATABASE_URL=postgresql://postgres.yourproject:yourpassword@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require
-
-# (Optional) Data.gov.in / Agmarknet API Key
-DATA_GOV_IN_API_KEY=your_key_here
-```
-
-> **Note**: If `DATABASE_URL` is left blank, Mandi Mitra **automatically initializes a local SQLite database (`mandi_mitra.db`)** populated with authentic Indian agricultural benchmark data for instant local execution without needing internet credentials.
-
----
-
-### 2. Setting Up Supabase Database (Optional)
-
-If using Supabase PostgreSQL:
-1. Go to your [Supabase Dashboard](https://supabase.com/dashboard).
-2. Open the **SQL Editor**.
-3. Copy the contents of `database/schema.sql` and click **Run**.
-4. (Optional) Run `database/seed.sql` to populate initial APMC coordinates and prices.
-
----
-
-### 3. Start Backend Server
-
-Open a Windows PowerShell terminal in the project root:
-
+### 2. Start Backend Server
 ```powershell
 # Install backend dependencies
 python -m pip install -r backend/requirements.txt
 
-# Start FastAPI server
+# Start FastAPI server on port 8000
 python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
 - API Base URL: `http://localhost:8000`
 - Interactive OpenAPI Docs: `http://localhost:8000/docs`
 - Health Endpoint: `http://localhost:8000/api/health`
 
----
-
-### 4. Start Frontend Client
-
-Open a second Windows PowerShell terminal:
-
+### 3. Start Frontend Client
+Open a second terminal window:
 ```powershell
 cd frontend
 npm install
 npm run dev
 ```
-
-- Web Dashboard: `http://localhost:5173`
+- Access Web Application at: `http://localhost:5173`
 
 ---
 
-### 5. Run Verification & Unit Tests
+## 🗄️ Database Architecture
 
-To run the complete pytest test suite:
+Mandi Mitra supports a dual database strategy:
 
+1. **Local SQLite Development Mode (`mandi_mitra.db`)**:
+   - If `DATABASE_URL` is omitted from `.env`, the backend uses a local SQLite database with 23 verified Indian APMCs and 35 days of daily benchmark price observations.
+2. **Supabase PostgreSQL Mode**:
+   - Set `DATABASE_URL` in `.env`.
+   - FastAPI automatically initializes all 8 tables and seeds baseline data on first startup via `init_db()` (manual execution of `database/schema.sql` is optional).
+   - The backend connects directly via SQLAlchemy with psycopg2 and reports any connection errors explicitly rather than silently falling back to SQLite.
+
+---
+
+## 🔄 Live Agmarknet Synchronization
+
+To pull fresh daily mandi prices directly from the Government of India portal:
 ```powershell
-python -m pytest backend/tests -v
+# Sync live prices for all supported crops
+python scripts/sync_agmarknet.py
+
+# Or sync specific commodity
+python scripts/sync_agmarknet.py --commodity "Tomato" --limit 50
+```
+Live prices are tagged with `data_classification: "live"` and `data_source: "Agmarknet Official API"`, while seasonal baseline prices are clearly marked as `benchmark`.
+
+---
+
+## 🧪 Testing & Quality Assurance
+
+Run the automated backend test suite (18 tests including idempotency, preferences, and data integrity):
+```powershell
+$env:PYTHONPATH="." ; python -m pytest backend/tests -v
 ```
 
-To run the end-to-end system verification script:
-
+Run the end-to-end system verification suite:
 ```powershell
-python scripts/verify_system.py
+$env:PYTHONPATH="." ; python scripts/verify_system.py
 ```
 
 ---
 
-## 📡 Agmarknet Data Integration Details
+## 🛡️ Data Provenance & Disclaimers
 
-- **Official API Endpoint**: `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070`
-- **Data Classification**:
-  - `live`: Live prices fetched from Data.gov.in using the configured API key.
-  - `historical`: Previous 35-day daily records stored for trend curves.
-  - `sample` / `benchmark`: High-fidelity authentic government APMC records for offline resilience.
-- **Sync Script**:
-  ```powershell
-  python scripts/sync_agmarknet.py --state "Telangana" --commodity "Paddy (Dhan)"
-  ```
+- **Official Agmarknet Integration**: Designed for the public Data.gov.in Daily Mandi Prices resource (`https://data.gov.in/resource/current-daily-price-various-commodities-various-markets-mandi`).
+- **Benchmark Data**: Offline fallback prices are clearly classified as `benchmark` data based on historical seasonal trends. They are never falsely labeled as live government prices.
+- **Geodesic Distance**: Distances are straight-line approximations calculated using the Haversine formula. Actual road travel distances are 15-25% higher.
+- **Non-Speculative Advisory**: Recommendations are decision-support guidelines factoring storage expenses and price momentum. They do not constitute financial advice or guarantee future market rates.
 
 ---
 
-## ☁️ Deployment Guide (Future Step)
+## 📖 Documentation Index
 
-### Frontend (Vercel)
-1. Push project to GitHub.
-2. In Vercel, set root directory to `frontend`.
-3. Set environment variable: `VITE_API_BASE_URL=https://your-backend.onrender.com/api`.
-4. Deploy!
+Detailed documentation files are available in the [`docs/`](docs/) directory:
 
-### Backend (Render)
-1. In Render, create a new **Web Service**.
-2. Root directory: project root.
-3. Build command: `pip install -r backend/requirements.txt`.
-4. Start command: `uvicorn backend.app.main:app --host 0.0.0.0 --port 8000`.
-5. Set environment variable: `DATABASE_URL` (Supabase Connection Pooler string).
-6. Set environment variable: `ENVIRONMENT=production`.
+1. [Project Overview](docs/PROJECT_OVERVIEW.md)
+2. [Farmer & User Guide](docs/USER_GUIDE.md)
+3. [Local Development Setup](docs/LOCAL_SETUP.md)
+4. [Database Setup & Supabase Guide](docs/DATABASE_SETUP.md)
+5. [Agmarknet Data Guide](docs/AGMARKNET_DATA_GUIDE.md)
+6. [Features & Mathematical Calculations](docs/FEATURES_AND_CALCULATIONS.md)
+7. [API Reference](docs/API_REFERENCE.md)
+8. [Testing Guide](docs/TESTING_GUIDE.md)
+9. [Cloud Deployment Guide (Render, Vercel, Supabase)](docs/DEPLOYMENT_GUIDE.md)
+10. [Contributing Guidelines](docs/CONTRIBUTING.md)
+
+---
+
+## 📄 License
+
+*License choice pending user confirmation (e.g., MIT, Apache 2.0, or GPLv3).*

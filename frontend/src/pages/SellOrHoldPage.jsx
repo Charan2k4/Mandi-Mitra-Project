@@ -146,6 +146,7 @@ export default function SellOrHoldPage() {
                 onChange={handleCropChange}
                 className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
               >
+                {crops.length === 0 && <option value="">Loading crops...</option>}
                 {crops.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -194,7 +195,7 @@ export default function SellOrHoldPage() {
               <input
                 type="number"
                 min="0.1"
-                step="0.5"
+                step="any"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
@@ -232,7 +233,7 @@ export default function SellOrHoldPage() {
               <input
                 type="number"
                 min="0"
-                step="0.5"
+                step="any"
                 value={storageCost}
                 onChange={(e) => setStorageCost(e.target.value)}
                 className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"

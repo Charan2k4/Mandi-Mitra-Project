@@ -197,7 +197,8 @@ def get_sell_or_hold_advice(
     variety = db.query(Variety).filter(Variety.id == request.variety_id).first() if request.variety_id else None
     mandi = db.query(Mandi).filter(Mandi.id == request.mandi_id).first() if request.mandi_id else None
 
-    # Query historical prices (up to 45 records)
+    # Query historical prices (up to 45 records) with hierarchical fallback
+    # Level 1: Exact Mandi + Exact Variety
     price_q = db.query(MarketPrice).filter(MarketPrice.commodity_id == commodity.id)
     if request.variety_id is not None:
         price_q = price_q.filter(MarketPrice.variety_id == request.variety_id)
@@ -206,11 +207,27 @@ def get_sell_or_hold_advice(
 
     prices = price_q.order_by(desc(MarketPrice.price_date)).limit(45).all()
 
+    # Level 2: Fallback to all varieties of this crop at the selected mandi if specific variety not quoted
+    if len(prices) < 5 and request.variety_id is not None and request.mandi_id is not None:
+        prices = db.query(MarketPrice).filter(
+            MarketPrice.commodity_id == commodity.id,
+            MarketPrice.mandi_id == request.mandi_id
+        ).order_by(desc(MarketPrice.price_date)).limit(45).all()
+
+    # Level 3: Fallback to regional market prices for this crop if specific mandi has no quotes
+    effective_mandi_name = mandi.name if mandi else "Regional APMC Benchmark"
+    if len(prices) < 5:
+        prices = db.query(MarketPrice).filter(
+            MarketPrice.commodity_id == commodity.id
+        ).order_by(desc(MarketPrice.price_date)).limit(45).all()
+        if mandi:
+            effective_mandi_name = f"{mandi.name} (Regional Benchmark)"
+
     return evaluate_sell_or_hold(
         request=request,
         commodity_name=commodity.name,
         variety_name=variety.name if variety else None,
-        mandi_name=mandi.name if mandi else "Regional APMC Benchmark",
+        mandi_name=effective_mandi_name,
         prices=prices,
         reference_date=date.today()
     )

@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from backend.app.database.session import get_db
 from backend.app.models.mandi import Mandi
 from backend.app.models.location import District, State
@@ -15,9 +15,10 @@ def list_mandis(
     db: Session = Depends(get_db)
 ):
     """Retrieve all APMC mandis with coordinates."""
-    mandis = db.query(Mandi).join(District).join(State).all()
+    query = db.query(Mandi).options(joinedload(Mandi.district).joinedload(District.state))
     if district_id:
-        mandis = [m for m in mandis if m.district_id == district_id]
+        query = query.filter(Mandi.district_id == district_id)
+    mandis = query.all()
         
     results = []
     for m in mandis:

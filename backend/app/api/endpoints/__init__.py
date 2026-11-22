@@ -4,6 +4,7 @@ from backend.app.api.endpoints.crops import router as crops_router
 from backend.app.api.endpoints.mandis import router as mandis_router
 from backend.app.api.endpoints.prices import router as prices_router
 from backend.app.api.endpoints.advisor import router as advisor_router
+from backend.app.api.endpoints.preferences import router as preferences_router
 
 __all__ = [
     "health_router",
@@ -11,5 +12,6 @@ __all__ = [
     "crops_router",
     "mandis_router",
     "prices_router",
-    "advisor_router"
+    "advisor_router",
+    "preferences_router"
 ]

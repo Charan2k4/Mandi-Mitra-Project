@@ -62,6 +62,15 @@ export default function MandiCard({ result, commodityId, varietyId, quantityQuin
         {result.is_stale && (
           <AlertBadge type="STALE" label={t('stale_price_warning')} />
         )}
+        {result.data_classification === 'live' ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Mandi Rate
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+            Benchmark Estimate
+          </span>
+        )}
       </div>
 
       {/* Financial Breakdown Grid */}

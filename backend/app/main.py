@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.core.config import settings
 from backend.app.api import api_router
 from backend.app.database.init_db import init_db
+from backend.app.database.session import verify_database_connection, is_postgres_configured
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,10 +19,13 @@ async def lifespan(app: FastAPI):
     # Startup: ensure tables and realistic Indian mandi seed dataset are ready
     logger.info("Initializing Mandi Mitra Database...")
     try:
+        verify_database_connection()
         init_db()
         logger.info("Database schema and verified market data verified successfully.")
     except Exception as exc:
         logger.error(f"Database initialization error on startup: {exc}")
+        if is_postgres_configured():
+            raise
     yield
     # Shutdown
     logger.info("Mandi Mitra API shutting down.")

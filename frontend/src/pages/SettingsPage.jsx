@@ -72,7 +72,7 @@ export default function SettingsPage() {
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
             {t('settings_language')}
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <button
               type="button"
               onClick={() => setLanguage('en')}
@@ -94,6 +94,17 @@ export default function SettingsPage() {
               }`}
             >
               తెలుగు (Telugu)
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguage('hi')}
+              className={`py-3 px-4 rounded-xl border text-sm font-bold transition-all text-center ${
+                language === 'hi'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-800 dark:text-emerald-300 shadow-sm'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+              }`}
+            >
+              हिन्दी (Hindi)
             </button>
           </div>
         </div>

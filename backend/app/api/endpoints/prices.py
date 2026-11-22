@@ -7,8 +7,24 @@ from backend.app.models.crop import Commodity, Variety
 from backend.app.models.mandi import Mandi
 from backend.app.schemas.price import MarketPriceBase, PriceHistoryResponse, PriceHistoryItem
 from backend.app.services.price_service import get_latest_price_for_mandi, get_price_history
+from backend.app.services.agmarknet_service import agmarknet_service
 
 router = APIRouter()
+
+@router.get("/status", tags=["Prices"])
+def get_prices_status(db: Session = Depends(get_db)):
+    """Return live vs benchmark price data coverage statistics."""
+    return agmarknet_service.get_data_coverage_stats(db)
+
+@router.post("/sync", tags=["Prices"])
+async def trigger_price_sync(
+    state: Optional[str] = Query(None),
+    commodity: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """Trigger manual on-demand sync from official Agmarknet API into database."""
+    return await agmarknet_service.sync_live_prices_to_db(db, state=state, commodity=commodity, limit=limit)
 
 @router.get("", response_model=Optional[MarketPriceBase], tags=["Prices"])
 def get_current_price(
@@ -60,24 +76,14 @@ def get_prices_history(
     variety = db.query(Variety).filter(Variety.id == variety_id).first() if variety_id else None
     mandi = db.query(Mandi).filter(Mandi.id == mandi_id).first() if mandi_id else None
 
-    records = get_price_history(db, commodity_id=commodity_id, variety_id=variety_id, mandi_id=mandi_id, days=days)
+    items = get_price_history(db, commodity_id=commodity_id, variety_id=variety_id, mandi_id=mandi_id, days=days)
     
     # Sort chronological for charts (oldest to newest)
-    sorted_records = sorted(records, key=lambda x: x.price_date)
+    sorted_items = sorted(items, key=lambda x: x.price_date)
 
-    history_items = []
-    for r in sorted_records:
-        history_items.append(PriceHistoryItem(
-            price_date=r.price_date.isoformat(),
-            modal_price=r.modal_price,
-            min_price=r.min_price,
-            max_price=r.max_price,
-            arrivals_in_tonnes=r.arrivals_in_tonnes or 0.0,
-            mandi_name=r.mandi.name if r.mandi else None,
-            data_classification=r.data_classification or "historical"
-        ))
-
-    latest_date_str = sorted_records[-1].price_date.isoformat() if sorted_records else None
+    latest_date_str = sorted_items[-1].price_date if sorted_items else None
+    latest_classification = sorted_items[-1].data_classification if sorted_items else "benchmark"
+    data_source_label = "Agmarknet Official Live API" if latest_classification == "live" else "Agmarknet Benchmark Data"
 
     return PriceHistoryResponse(
         commodity_id=commodity.id,
@@ -85,8 +91,8 @@ def get_prices_history(
         variety_id=variety.id if variety else None,
         variety_name=variety.name if variety else None,
         mandi_id=mandi.id if mandi else None,
-        mandi_name=mandi.name if mandi else None,
-        history=history_items,
+        mandi_name=mandi.name if mandi else "Regional Average (All Mandis)",
+        history=sorted_items,
         latest_date=latest_date_str,
-        data_source="Agmarknet Official / Benchmark"
+        data_source=data_source_label
     )

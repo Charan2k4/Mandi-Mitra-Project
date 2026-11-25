@@ -29,6 +29,11 @@ export const translations = {
     step4_title: "4. Sell-or-Hold Advice",
     step4_desc: "Get an explainable recommendation factoring holding costs and price momentum.",
     quick_crops_title: "Quick Compare by Popular Commodities",
+    recent_activity_title: "Recent Activity",
+    recent_activity_subtitle: "Revisit your recent mandi comparisons, market trends, and Sell-or-Hold evaluations.",
+    recent_activity_empty: "No recent activity yet. Your mandi comparisons, market trends and Sell-or-Hold analyses will appear here.",
+    recent_activity_clear: "Clear History",
+    revisit_analysis: "Revisit",
 
     // Form
     form_title: "Farmer Selling Parameters",
@@ -151,6 +156,11 @@ export const translations = {
     step4_title: "4. అమ్మాలా? నిల్వ ఉంచాలా? సలహా",
     step4_desc: "నిల్వ ఖర్చులు మరియు ధరల కదలికలను ఆధారంగా చేసుకుని ఖచ్చితమైన సలహా పొందండి.",
     quick_crops_title: "ప్రధాన పంటల త్వరిత పోలిక",
+    recent_activity_title: "ఇటీవలి శోధనలు",
+    recent_activity_subtitle: "మీ ఇటీవలి మార్కెట్ పోలికలు, ధోరణులు మరియు అమ్మకం/నిల్వ సలహాలను తిరిగి చూడండి.",
+    recent_activity_empty: "ఇంకా ఇటీవలి కార్యకలాపాలు లేవు. మీ మార్కెట్ పోలికలు, ధోరణులు మరియు సలహాలు ఇక్కడ కనిపిస్తాయి.",
+    recent_activity_clear: "చరిత్రను తొలగించండి",
+    revisit_analysis: "మళ్లీ చూడండి",
 
     // Form
     form_title: "రైతు అమ్మకాల వివరాలు",
@@ -273,6 +283,11 @@ export const translations = {
     step4_title: "4. बेचने या रोकने की सलाह",
     step4_desc: "भंडारण खर्च और मूल्य गतिशीलता के आधार पर पारदर्शी सलाह प्राप्त करें।",
     quick_crops_title: "प्रमुख फसलों की त्वरित तुलना",
+    recent_activity_title: "हाल की गतिविधियां",
+    recent_activity_subtitle: "अपनी हालिया मंडी तुलना, बाजार के रुझान और बिक्री-या-भंडारण सलाह को फिर से देखें।",
+    recent_activity_empty: "अभी तक कोई हाल की गतिविधि नहीं है। आपकी मंडी तुलना, बाजार के रुझान और बिक्री-या-भंडारण विश्लेषण यहां दिखाई देंगे।",
+    recent_activity_clear: "इतिहास हटाएं",
+    revisit_analysis: "फिर से देखें",
 
     // Form
     form_title: "किसान बिक्री विवरण",

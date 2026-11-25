@@ -17,6 +17,8 @@ import { useSettings } from '../context/SettingsContext';
 import { apiService } from '../services/api';
 import AdvisoryCard from '../components/AdvisoryCard';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { recordActivity } from '../utils/activityTracker';
+import { formatCurrency } from '../utils/formatters';
 
 export default function SellOrHoldPage() {
   const { t } = useLanguage();
@@ -32,8 +34,8 @@ export default function SellOrHoldPage() {
   const [selectedVarietyId, setSelectedVarietyId] = useState(location.state?.varietyId || '');
   const [selectedMandiId, setSelectedMandiId] = useState(location.state?.mandiId || '');
   const [quantity, setQuantity] = useState(location.state?.quantity || 10.0);
-  const [holdingDays, setHoldingDays] = useState(settings.holdingPeriodDays || 3);
-  const [storageCost, setStorageCost] = useState(settings.storageCostPerQtlDay || 5.0);
+  const [holdingDays, setHoldingDays] = useState(location.state?.holdingDays || settings.holdingPeriodDays || 3);
+  const [storageCost, setStorageCost] = useState(location.state?.storageCost || settings.storageCostPerQtlDay || 5.0);
 
   const [advice, setAdvice] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -100,6 +102,30 @@ export default function SellOrHoldPage() {
     try {
       const response = await apiService.getSellOrHoldAdvice(payload);
       setAdvice(response);
+
+      // Record activity
+      const cropObj = crops.find((c) => c.id === parseInt(selectedCropId));
+      const varietyObj = varieties.find((v) => v.id === parseInt(selectedVarietyId));
+      const mandiObj = mandis.find((m) => m.id === parseInt(selectedMandiId));
+      const locationText = mandiObj ? `${mandiObj.name}` : (response.mandi_name || 'Regional Cluster');
+
+      recordActivity({
+        type: 'advisor',
+        title: 'Sell-or-Hold',
+        cropName: cropObj?.name || response.commodity_name || 'Crop',
+        varietyName: varietyObj?.name || response.variety_name || '',
+        location: locationText,
+        summary: `${response.recommendation} • ${formatCurrency(response.current_price)}/qtl`,
+        path: '/advisor',
+        state: {
+          commodityId: parseInt(selectedCropId),
+          varietyId: selectedVarietyId ? parseInt(selectedVarietyId) : '',
+          mandiId: selectedMandiId ? parseInt(selectedMandiId) : '',
+          quantity: parseFloat(quantity),
+          holdingDays: parseInt(holdingDays),
+          storageCost: parseFloat(storageCost)
+        }
+      });
     } catch (err) {
       setError(err.message || 'Failed to generate advisory.');
     } finally {

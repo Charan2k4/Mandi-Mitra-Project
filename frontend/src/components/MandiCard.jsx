@@ -4,6 +4,7 @@ import { MapPin, Navigation, TrendingUp, IndianRupee, ArrowRight, AlertCircle, C
 import { formatCurrency, formatNumber, formatDate } from '../utils/formatters';
 import AlertBadge from './AlertBadge';
 import { useLanguage } from '../context/LanguageContext';
+import ModalPriceTooltip from './ModalPriceTooltip';
 
 export default function MandiCard({ result, commodityId, varietyId, quantityQuintals }) {
   const navigate = useNavigate();
@@ -76,7 +77,10 @@ export default function MandiCard({ result, commodityId, varietyId, quantityQuin
       {/* Financial Breakdown Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3 mb-4">
         <div>
-          <span className="text-xs text-slate-500 block">Market Price</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-slate-500">Modal Price</span>
+            <ModalPriceTooltip />
+          </div>
           <span className="font-semibold text-slate-900 dark:text-white text-sm">
             {formatCurrency(result.price_per_quintal)}/qtl
           </span>

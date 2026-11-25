@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Settings as SettingsIcon, Languages, Check, RotateCcw } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useSettings } from '../context/SettingsContext';
+import ModalPriceTooltip from '../components/ModalPriceTooltip';
 
 export default function SettingsPage() {
   const { language, setLanguage, t } = useLanguage();
@@ -133,9 +134,12 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                {t('settings_price_pref')}
-              </label>
+              <div className="flex items-center gap-1.5 mb-1">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {t('settings_price_pref')}
+                </label>
+                <ModalPriceTooltip iconClassName="w-3 h-3" />
+              </div>
               <select
                 value={formData.pricePreference}
                 onChange={(e) => setFormData({ ...formData, pricePreference: e.target.value })}

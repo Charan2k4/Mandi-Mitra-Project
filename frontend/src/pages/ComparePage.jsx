@@ -20,6 +20,9 @@ import MandiCard from '../components/MandiCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import MandiMapLeaflet from '../components/MandiMapLeaflet';
 import { getCoordinatesFor } from '../utils/geoCoordinates';
+import ModalPriceTooltip from '../components/ModalPriceTooltip';
+import { recordActivity } from '../utils/activityTracker';
+import { formatCurrency } from '../utils/formatters';
 
 export default function ComparePage() {
   const { t } = useLanguage();
@@ -31,7 +34,7 @@ export default function ComparePage() {
   const [districts, setDistricts] = useState([]);
   const [selectedState, setSelectedState] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
-  const [farmerLocation, setFarmerLocation] = useState('');
+  const [farmerLocation, setFarmerLocation] = useState(location.state?.preselectedFarmerLocation || '');
   const [farmerCoords, setFarmerCoords] = useState({ lat: null, lng: null });
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
@@ -39,14 +42,14 @@ export default function ComparePage() {
   const [crops, setCrops] = useState([]);
   const [varieties, setVarieties] = useState([]);
   const [selectedCropId, setSelectedCropId] = useState(location.state?.preselectedCropId || '');
-  const [selectedVarietyId, setSelectedVarietyId] = useState('');
+  const [selectedVarietyId, setSelectedVarietyId] = useState(location.state?.preselectedVarietyId || '');
 
   // Commercial parameters
-  const [quantity, setQuantity] = useState(25.0);
-  const [transportRate, setTransportRate] = useState(15.0);
-  const [otherExpenses, setOtherExpenses] = useState(300.0);
-  const [searchRadius, setSearchRadius] = useState(settings.searchRadiusKm || 100);
-  const [pricePreference, setPricePreference] = useState(settings.pricePreference || 'modal');
+  const [quantity, setQuantity] = useState(location.state?.preselectedQuantity ?? 25.0);
+  const [transportRate, setTransportRate] = useState(location.state?.preselectedTransportRate ?? 15.0);
+  const [otherExpenses, setOtherExpenses] = useState(location.state?.preselectedOtherExpenses ?? 300.0);
+  const [searchRadius, setSearchRadius] = useState(location.state?.preselectedSearchRadius || settings.searchRadiusKm || 100);
+  const [pricePreference, setPricePreference] = useState(location.state?.preselectedPricePreference || settings.pricePreference || 'modal');
 
   // Execution state
   const [isLoading, setIsLoading] = useState(false);
@@ -66,18 +69,20 @@ export default function ComparePage() {
         setCrops(cropsData);
 
         if (statesData.length > 0) {
-          // Default to Telangana or first state
-          const defaultState = statesData.find(s => s.name === 'Telangana') || statesData[0];
-          setSelectedState(defaultState.name);
-          setFarmerCoords(getCoordinatesFor(defaultState.name));
-          loadDistricts(defaultState.id, defaultState.name);
+          const targetStateName = location.state?.preselectedState;
+          const chosenState = (targetStateName && statesData.find(s => s.name === targetStateName))
+            || statesData.find(s => s.name === 'Telangana')
+            || statesData[0];
+          setSelectedState(chosenState.name);
+          const initialCoords = location.state?.preselectedCoords || getCoordinatesFor(chosenState.name);
+          setFarmerCoords(initialCoords);
+          await loadDistricts(chosenState.id, chosenState.name, location.state?.preselectedDistrict);
         }
 
-        if (!selectedCropId && cropsData.length > 0) {
-          setSelectedCropId(cropsData[0].id);
-          loadVarieties(cropsData[0].id);
-        } else if (selectedCropId) {
-          loadVarieties(selectedCropId);
+        const activeCropId = location.state?.preselectedCropId || selectedCropId || (cropsData.length > 0 ? cropsData[0].id : '');
+        if (activeCropId) {
+          setSelectedCropId(activeCropId);
+          await loadVarieties(activeCropId, location.state?.preselectedVarietyId);
         }
       } catch (err) {
         setError(err.message || 'Failed to initialize form data');
@@ -86,15 +91,27 @@ export default function ComparePage() {
     initData();
   }, []);
 
-  const loadDistricts = async (stateId, stateName = selectedState) => {
+  // Auto-run if navigated from Recent Activity
+  useEffect(() => {
+    if (location.state?.autoRun && selectedCropId && selectedState) {
+      const timer = setTimeout(() => {
+        handleSubmit();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedCropId, selectedState]);
+
+  const loadDistricts = async (stateId, stateName = selectedState, targetDistrict = null) => {
     try {
       const dists = await apiService.getDistricts(stateId);
       setDistricts(dists);
       if (dists.length > 0) {
-        setSelectedDistrict(dists[0].name);
-        const coords = (dists[0].latitude && dists[0].longitude)
-          ? { lat: dists[0].latitude, lng: dists[0].longitude }
-          : getCoordinatesFor(stateName, dists[0].name);
+        const found = targetDistrict ? dists.find(d => d.name === targetDistrict) : null;
+        const chosen = found || dists[0];
+        setSelectedDistrict(chosen.name);
+        const coords = (chosen.latitude && chosen.longitude)
+          ? { lat: chosen.latitude, lng: chosen.longitude }
+          : getCoordinatesFor(stateName, chosen.name);
         setFarmerCoords(coords);
       } else {
         setSelectedDistrict('');
@@ -105,11 +122,13 @@ export default function ComparePage() {
     }
   };
 
-  const loadVarieties = async (cropId) => {
+  const loadVarieties = async (cropId, targetVarietyId = null) => {
     try {
       const vars = await apiService.getVarieties(cropId);
       setVarieties(vars);
-      if (vars.length > 0) {
+      if (targetVarietyId && vars.some(v => v.id === parseInt(targetVarietyId))) {
+        setSelectedVarietyId(targetVarietyId);
+      } else if (vars.length > 0) {
         setSelectedVarietyId(vars[0].id);
       } else {
         setSelectedVarietyId('');
@@ -206,7 +225,9 @@ export default function ComparePage() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    if (!selectedCropId) return;
+
     setIsLoading(true);
     setError(null);
 
@@ -228,6 +249,38 @@ export default function ComparePage() {
     try {
       const response = await apiService.compareMandis(payload);
       setComparisonResults(response);
+
+      // Record in recent activities
+      const cropObj = crops.find((c) => c.id === parseInt(selectedCropId));
+      const varietyObj = varieties.find((v) => v.id === parseInt(selectedVarietyId));
+      const topResult = response.results?.[0];
+      const summaryText = topResult
+        ? `Best: ${topResult.mandi_name} (${formatCurrency(topResult.net_revenue)})`
+        : 'No mandis found in radius';
+
+      recordActivity({
+        type: 'compare',
+        title: 'Mandi Comparison',
+        cropName: cropObj?.name || 'Crop',
+        varietyName: varietyObj?.name || '',
+        location: selectedDistrict ? `${selectedDistrict}, ${selectedState}` : (farmerLocation || 'Local Region'),
+        summary: summaryText,
+        path: '/compare',
+        state: {
+          preselectedCropId: parseInt(selectedCropId),
+          preselectedVarietyId: selectedVarietyId ? parseInt(selectedVarietyId) : '',
+          preselectedState: selectedState,
+          preselectedDistrict: selectedDistrict,
+          preselectedQuantity: parseFloat(quantity),
+          preselectedTransportRate: parseFloat(transportRate),
+          preselectedOtherExpenses: parseFloat(otherExpenses || 0),
+          preselectedSearchRadius: parseInt(searchRadius),
+          preselectedPricePreference: pricePreference,
+          preselectedFarmerLocation: farmerLocation,
+          preselectedCoords: farmerCoords,
+          autoRun: true
+        }
+      });
     } catch (err) {
       setError(err.message || 'Comparison failed. Please verify inputs.');
     } finally {
@@ -462,9 +515,12 @@ export default function ComparePage() {
 
             {/* Price Preference */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                {t('form_price_pref')}
-              </label>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {t('form_price_pref')}
+                </label>
+                <ModalPriceTooltip iconClassName="w-3 h-3" />
+              </div>
               <div className="grid grid-cols-3 gap-2 text-xs">
                 {[
                   { id: 'modal', label: 'Modal' },
@@ -475,13 +531,14 @@ export default function ComparePage() {
                     key={p.id}
                     type="button"
                     onClick={() => setPricePreference(p.id)}
-                    className={`py-1.5 font-medium rounded-xl border transition-all text-center ${
+                    className={`py-1.5 font-medium rounded-xl border transition-all text-center flex items-center justify-center gap-1 ${
                       pricePreference === p.id
                         ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                         : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    {p.label}
+                    <span>{p.label}</span>
+                    {p.id === 'modal' && <ModalPriceTooltip iconClassName="w-3 h-3" />}
                   </button>
                 ))}
               </div>

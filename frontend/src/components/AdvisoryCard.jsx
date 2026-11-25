@@ -7,8 +7,7 @@ import {
   Clock,
   Layers,
   ArrowRight,
-  AlertOctagon,
-  Percent
+  AlertOctagon
 } from 'lucide-react';
 import AlertBadge from './AlertBadge';
 import { formatCurrency, formatNumber } from '../utils/formatters';
@@ -59,13 +58,6 @@ export default function AdvisoryCard({ advice }) {
             <AlertBadge type={advice.recommendation} size="lg" />
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
               {advice.commodity_name} {advice.variety_name ? `(${advice.variety_name})` : ''}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
-            <span className="text-slate-500">{t('advisory_confidence')}:</span>
-            <span className="font-bold text-slate-900 dark:text-white">
-              {advice.confidence_score.toFixed(0)}%
             </span>
           </div>
         </div>

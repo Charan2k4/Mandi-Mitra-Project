@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { apiService } from '../services/api';
+import RecentActivitySection from '../components/RecentActivitySection';
 
 export default function Dashboard() {
   const { t } = useLanguage();
@@ -228,6 +229,9 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Recent Activity Section */}
+      <RecentActivitySection />
 
       {/* Quick Compare By Popular Crops */}
       <div>

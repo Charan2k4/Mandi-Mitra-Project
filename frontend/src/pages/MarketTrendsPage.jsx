@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   TrendingUp,
   Calendar,
@@ -28,9 +29,12 @@ import { useLanguage } from '../context/LanguageContext';
 import { apiService } from '../services/api';
 import { formatCurrency, formatNumber, formatDate } from '../utils/formatters';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ModalPriceTooltip from '../components/ModalPriceTooltip';
+import { recordActivity } from '../utils/activityTracker';
 
 export default function MarketTrendsPage() {
   const { t } = useLanguage();
+  const location = useLocation();
 
   const [crops, setCrops] = useState([]);
   const [varieties, setVarieties] = useState([]);
@@ -56,11 +60,17 @@ export default function MarketTrendsPage() {
         setMandis(mandisData);
 
         if (cropsData.length > 0) {
-          const firstCropId = cropsData[0].id;
-          setSelectedCropId(firstCropId);
-          const vars = await apiService.getVarieties(firstCropId);
+          const initCropId = location.state?.commodityId || cropsData[0].id;
+          setSelectedCropId(initCropId);
+          const vars = await apiService.getVarieties(initCropId);
           setVarieties(vars);
-          setSelectedVarietyId(''); // Default to All Varieties for regional trend
+          setSelectedVarietyId(location.state?.varietyId || '');
+          if (location.state?.mandiId) {
+            setSelectedMandiId(location.state.mandiId);
+          }
+          if (location.state?.days) {
+            setDays(location.state.days);
+          }
         }
       } catch (err) {
         setError(err.message || 'Failed to initialize market trends options.');
@@ -96,6 +106,31 @@ export default function MarketTrendsPage() {
           days
         );
         setHistoryData(res);
+
+        // Record activity if history returned
+        if (res?.history?.length > 0) {
+          const cropObj = crops.find((c) => c.id === parseInt(selectedCropId));
+          const varietyObj = varieties.find((v) => v.id === parseInt(selectedVarietyId));
+          const mandiObj = mandis.find((m) => m.id === parseInt(selectedMandiId));
+          const pts = res.history;
+          const latestPt = pts[pts.length - 1];
+
+          recordActivity({
+            type: 'trends',
+            title: 'Market Trends',
+            cropName: cropObj?.name || 'Crop',
+            varietyName: varietyObj?.name || '',
+            location: mandiObj ? `${mandiObj.name}` : 'All Regional APMCs',
+            summary: latestPt ? `Latest: ${formatCurrency(latestPt.modal_price)}/qtl (${days}d)` : `${days}-Day History`,
+            path: '/trends',
+            state: {
+              commodityId: parseInt(selectedCropId),
+              varietyId: selectedVarietyId ? parseInt(selectedVarietyId) : '',
+              mandiId: selectedMandiId ? parseInt(selectedMandiId) : '',
+              days: parseInt(days)
+            }
+          });
+        }
       } catch (err) {
         setError(err.message || 'Failed to fetch price history records.');
       } finally {
@@ -203,7 +238,10 @@ export default function MarketTrendsPage() {
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <span className="text-xs text-slate-500 block">Latest Modal Price</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-500 block">Latest Modal Price</span>
+            <ModalPriceTooltip />
+          </div>
           <span className="text-xl sm:text-2xl font-extrabold text-emerald-700 dark:text-emerald-400">
             {latestPoint ? formatCurrency(latestPoint.modal_price) : 'N/A'}
           </span>
@@ -255,7 +293,10 @@ export default function MarketTrendsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className="inline-block w-3 h-3 rounded-full bg-emerald-600" /> Modal
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block w-3 h-3 rounded-full bg-emerald-600" /> Modal
+              <ModalPriceTooltip iconClassName="w-3 h-3" />
+            </span>
             <span className="inline-block w-3 h-3 rounded-full bg-blue-400" /> Max
             <span className="inline-block w-3 h-3 rounded-full bg-amber-400" /> Min
           </div>
